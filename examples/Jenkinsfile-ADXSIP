@@ -1,0 +1,81 @@
+// ============================================================================
+// ADXSIP Backend - Jenkins Pipeline
+// ============================================================================
+// This pipeline builds the ADXSIP Backend (Java 17 + Maven)
+// - Pulls latest code from Git
+// - Runs security scans (Semgrep, Trivy, TruffleHog)
+// - Builds with Maven
+// - Deploys WAR file to output directory
+// - Sends email notification
+// ============================================================================
+
+pipeline {
+    agent { label 'build-agent' }
+
+    options {
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+    }
+
+    environment {
+        PROJECT_NAME = 'ADXSIP'
+        BUILD_DIR = '/tts/ttsbuild/ADXSIP/tts-uae-adx-sip-serverside'
+        OUTPUT_DIR = '/tts/outputttsbuild/ADXSIP/tts-uae-adx-sip-serverside'
+        JAVA_VERSION = '17'
+    }
+
+    stages {
+        stage('Security Scan') {
+            steps {
+                script {
+                    echo "🔒 Running security scans..."
+                    securityScan(
+                        projectName: env.PROJECT_NAME,
+                        scanDir: env.BUILD_DIR
+                    )
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    echo "🔨 Building Maven project..."
+                    buildJavaMaven(
+                        buildDir: env.BUILD_DIR,
+                        mavenGoals: 'clean install',
+                        javaVersion: env.JAVA_VERSION,
+                        skipTests: true
+                    )
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    echo "📦 Deploying to output directory..."
+                    deployToLocalDir(
+                        source: "${env.BUILD_DIR}/target/ADXSIP.war",
+                        destination: env.OUTPUT_DIR
+                    )
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                sendNotification()
+            }
+        }
+        success {
+            echo "✅ Build completed successfully!"
+        }
+        failure {
+            echo "❌ Build failed!"
+        }
+    }
+}
