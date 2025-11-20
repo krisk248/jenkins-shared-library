@@ -33,7 +33,7 @@ def call(Map config = [:]) {
             cd ${buildDir}
 
             # Update code if in permanent directory
-            ${updateCode ? (useSvn ? 'echo "📥 Updating code from SVN..." && svn update' : 'echo "📥 Updating code from Git..." && git pull') : ''}
+            ${updateCode ? (useSvn ? 'echo "📥 Updating code from SVN..." && svn update' : 'echo "📥 Updating code from Git..." && git reset --hard HEAD && git pull') : ''}
 
             # Setup Node environment and build
             export NVM_DIR="/home/jenkins-agent/.nvm"

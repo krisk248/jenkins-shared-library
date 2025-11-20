@@ -32,7 +32,7 @@ def call(Map config = [:]) {
             cd ${buildDir}
 
             # Update code if in permanent directory
-            ${gitPull ? 'echo "📥 Updating code from Git..." && git pull' : ''}
+            ${gitPull ? 'echo "📥 Updating code from Git..." && git reset --hard HEAD && git pull' : ''}
 
             # Setup Java environment and build
             export SDKMAN_DIR="/home/jenkins-agent/.sdkman"
