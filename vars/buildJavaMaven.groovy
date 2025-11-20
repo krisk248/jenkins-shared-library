@@ -35,7 +35,7 @@ def call(Map config = [:]) {
             ${gitPull ? 'echo "📥 Updating code from Git..." && git reset --hard HEAD && git pull' : ''}
 
             # Setup Java environment and build
-            export SDKMAN_DIR="/home/jenkins-agent/.sdkman"
+            export SDKMAN_DIR="\$HOME/.sdkman"
             source "\$SDKMAN_DIR/bin/sdkman-init.sh"
             sdk use java ${javaVersion}
 
@@ -49,7 +49,7 @@ def call(Map config = [:]) {
     } else {
         // Build in current workspace (code already checked out)
         sh """
-            export SDKMAN_DIR="/home/jenkins-agent/.sdkman"
+            export SDKMAN_DIR="\$HOME/.sdkman"
             source "\$SDKMAN_DIR/bin/sdkman-init.sh"
             sdk use java ${javaVersion}
 

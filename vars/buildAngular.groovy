@@ -36,7 +36,7 @@ def call(Map config = [:]) {
             ${updateCode ? (useSvn ? 'echo "📥 Updating code from SVN..." && svn update' : 'echo "📥 Updating code from Git..." && git reset --hard HEAD && git pull') : ''}
 
             # Setup Node environment and build
-            export NVM_DIR="/home/jenkins-agent/.nvm"
+            export NVM_DIR="\$HOME/.nvm"
             [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
 
             # Use specified Node version
@@ -58,7 +58,7 @@ def call(Map config = [:]) {
     } else {
         // Build in current workspace
         sh """
-            export NVM_DIR="/home/jenkins-agent/.nvm"
+            export NVM_DIR="\$HOME/.nvm"
             [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
 
             # Use specified Node version
