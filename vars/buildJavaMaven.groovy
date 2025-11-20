@@ -26,27 +26,26 @@ def call(Map config = [:]) {
 
     if (buildDir) {
         echo "Build directory: ${buildDir}"
-        dir(buildDir) {
-            // Update code if in permanent directory
-            if (gitPull) {
-                echo "📥 Updating code from Git..."
-                sh "git pull"
-            }
 
-            // Build
-            sh """
-                export SDKMAN_DIR="/home/jenkins-agent/.sdkman"
-                source "\$SDKMAN_DIR/bin/sdkman-init.sh"
-                sdk use java ${javaVersion}
+        // Build in permanent directory using cd (no @tmp pollution)
+        sh """
+            cd ${buildDir}
 
-                # Verify Java version
-                java -version
+            # Update code if in permanent directory
+            ${gitPull ? 'echo "📥 Updating code from Git..." && git pull' : ''}
 
-                # Run Maven build
-                export MAVEN_OPTS="${mavenOpts}"
-                mvn ${mavenGoals} ${skipTests ? '-DskipTests' : ''}
-            """
-        }
+            # Setup Java environment and build
+            export SDKMAN_DIR="/home/jenkins-agent/.sdkman"
+            source "\$SDKMAN_DIR/bin/sdkman-init.sh"
+            sdk use java ${javaVersion}
+
+            # Verify Java version
+            java -version
+
+            # Run Maven build
+            export MAVEN_OPTS="${mavenOpts}"
+            mvn ${mavenGoals} ${skipTests ? '-DskipTests' : ''}
+        """
     } else {
         // Build in current workspace (code already checked out)
         sh """

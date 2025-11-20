@@ -27,40 +27,34 @@ def call(Map config = [:]) {
 
     if (buildDir) {
         echo "Build directory: ${buildDir}"
-        dir(buildDir) {
-            // Update code if in permanent directory
-            if (updateCode) {
-                if (useSvn) {
-                    echo "📥 Updating code from SVN..."
-                    sh "svn update"
-                } else {
-                    echo "📥 Updating code from Git..."
-                    sh "git pull"
-                }
-            }
 
-            // Build
-            sh """
-                export NVM_DIR="/home/jenkins-agent/.nvm"
-                [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
+        // Build in permanent directory using cd (no @tmp pollution)
+        sh """
+            cd ${buildDir}
 
-                # Use specified Node version
-                nvm use ${nodeVersion}
+            # Update code if in permanent directory
+            ${updateCode ? (useSvn ? 'echo "📥 Updating code from SVN..." && svn update' : 'echo "📥 Updating code from Git..." && git pull') : ''}
 
-                # Verify Node and npm versions
-                node --version
-                npm --version
+            # Setup Node environment and build
+            export NVM_DIR="/home/jenkins-agent/.nvm"
+            [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
 
-                # Install dependencies (only if package.json changed or first time)
-                ${installCommand}
+            # Use specified Node version
+            nvm use ${nodeVersion}
 
-                # Run build
-                ${buildCommand}
+            # Verify Node and npm versions
+            node --version
+            npm --version
 
-                # Verify build output
-                ls -la ${distDir}/
-            """
-        }
+            # Install dependencies
+            ${installCommand}
+
+            # Run build
+            ${buildCommand}
+
+            # Verify build output
+            ls -la ${distDir}/
+        """
     } else {
         // Build in current workspace
         sh """

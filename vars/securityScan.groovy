@@ -42,63 +42,45 @@ def call(Map config = [:]) {
 
     def scanResults = [:]
 
-    // Change to scan directory
-    dir(scanDir) {
-        // Run Semgrep (SAST)
-        if (enableSemgrep) {
-            echo "Running Semgrep (SAST)..."
-            try {
-                sh """
-                    semgrep --config=auto \
-                        --json \
-                        --output=${reportBaseDir}/semgrep-report.json \
-                        . || true
-                """
-                scanResults.semgrep = 'COMPLETED'
-                echo "✅ Semgrep scan completed"
-            } catch (Exception e) {
-                scanResults.semgrep = 'FAILED'
-                echo "⚠️ Semgrep scan failed: ${e.message}"
-            }
-        }
+    // Run scans in scan directory using cd (no @tmp pollution)
+    sh """
+        cd ${scanDir}
 
-        // Run Trivy (SCA - dependency scanning)
-        if (enableTrivy) {
-            echo "Running Trivy (Dependency Scan)..."
-            try {
-                sh """
-                    trivy fs \
-                        --format json \
-                        --output ${reportBaseDir}/trivy-report.json \
-                        --severity HIGH,CRITICAL \
-                        . || true
-                """
-                scanResults.trivy = 'COMPLETED'
-                echo "✅ Trivy scan completed"
-            } catch (Exception e) {
-                scanResults.trivy = 'FAILED'
-                echo "⚠️ Trivy scan failed: ${e.message}"
-            }
-        }
+        ${enableSemgrep ? """
+        # Run Semgrep (SAST)
+        echo "Running Semgrep (SAST)..."
+        semgrep --config=auto \
+            --json \
+            --output=${reportBaseDir}/semgrep-report.json \
+            . || true
+        echo "✅ Semgrep scan completed"
+        """ : ''}
 
-        // Run TruffleHog (Secret scanning)
-        if (enableTruffleHog) {
-            echo "Running TruffleHog (Secret Scan)..."
-            try {
-                sh """
-                    trufflehog filesystem . \
-                        --json \
-                        --no-update \
-                        > ${reportBaseDir}/trufflehog-report.json || true
-                """
-                scanResults.truffleHog = 'COMPLETED'
-                echo "✅ TruffleHog scan completed"
-            } catch (Exception e) {
-                scanResults.truffleHog = 'FAILED'
-                echo "⚠️ TruffleHog scan failed: ${e.message}"
-            }
-        }
-    }
+        ${enableTrivy ? """
+        # Run Trivy (Dependency Scan)
+        echo "Running Trivy (Dependency Scan)..."
+        trivy fs \
+            --format json \
+            --output ${reportBaseDir}/trivy-report.json \
+            --severity HIGH,CRITICAL \
+            . || true
+        echo "✅ Trivy scan completed"
+        """ : ''}
+
+        ${enableTruffleHog ? """
+        # Run TruffleHog (Secret Scan)
+        echo "Running TruffleHog (Secret Scan)..."
+        trufflehog filesystem . \
+            --json \
+            --no-update \
+            > ${reportBaseDir}/trufflehog-report.json || true
+        echo "✅ TruffleHog scan completed"
+        """ : ''}
+    """
+
+    if (enableSemgrep) scanResults.semgrep = 'COMPLETED'
+    if (enableTrivy) scanResults.trivy = 'COMPLETED'
+    if (enableTruffleHog) scanResults.truffleHog = 'COMPLETED'
 
     // Generate PDF report using Python script
     echo "📄 Generating PDF report..."
