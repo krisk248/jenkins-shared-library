@@ -21,19 +21,23 @@ def call(Map config = [:]) {
     def distDir = config.distDir ?: 'dist'
     def useSvn = config.useSvn ?: false
     def updateCode = config.updateCode != false  // Update by default if buildDir specified
+    def gitBranch = config.gitBranch ?: ''  // Optional: specify branch to checkout
 
     echo "⚛️ Building Angular project with Node.js ${nodeVersion}"
     echo "Build command: ${buildCommand}"
 
     if (buildDir) {
         echo "Build directory: ${buildDir}"
+        if (gitBranch && !useSvn) {
+            echo "Git branch: ${gitBranch}"
+        }
 
         // Build in permanent directory using cd (no @tmp pollution)
         sh """#!/bin/bash
             cd ${buildDir}
 
             # Update code if in permanent directory
-            ${updateCode ? (useSvn ? 'echo "📥 Updating code from SVN..." && svn update' : 'echo "📥 Updating code from Git..." && git reset --hard HEAD && git pull') : ''}
+            ${updateCode ? (useSvn ? 'echo "📥 Updating code from SVN..." && svn update' : (gitBranch ? 'echo "📥 Checking out branch ' + gitBranch + '..." && git checkout ' + gitBranch + ' && git pull' : 'echo "📥 Pulling latest code..." && git pull')) : ''}
 
             # Setup Node environment and build
             export NVM_DIR="\$HOME/.nvm"

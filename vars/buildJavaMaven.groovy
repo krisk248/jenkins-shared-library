@@ -20,19 +20,23 @@ def call(Map config = [:]) {
     def skipTests = config.skipTests ?: false
     def mavenOpts = config.mavenOpts ?: '-Xmx2048m'
     def gitPull = config.gitPull != false  // Pull by default if buildDir specified
+    def gitBranch = config.gitBranch ?: ''  // Optional: specify branch to checkout
 
     echo "🔨 Building Java/Maven project with Java ${javaVersion}"
     echo "Maven goals: ${mavenGoals}"
 
     if (buildDir) {
         echo "Build directory: ${buildDir}"
+        if (gitBranch) {
+            echo "Git branch: ${gitBranch}"
+        }
 
         // Build in permanent directory using cd (no @tmp pollution)
         sh """#!/bin/bash
             cd ${buildDir}
 
             # Update code if in permanent directory
-            ${gitPull ? 'echo "📥 Updating code from Git..." && git reset --hard HEAD && git pull' : ''}
+            ${gitPull ? (gitBranch ? 'echo "📥 Checking out branch ' + gitBranch + '..." && git checkout ' + gitBranch + ' && git pull' : 'echo "📥 Pulling latest code..." && git pull') : ''}
 
             # Setup Java environment and build
             export SDKMAN_DIR="\$HOME/.sdkman"
