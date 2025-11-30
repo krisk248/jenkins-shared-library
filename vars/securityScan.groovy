@@ -1,125 +1,163 @@
 #!/usr/bin/env groovy
 
 /**
- * Run security scans using Semgrep, Trivy, and TruffleHog
- * Uses Python scripts from build server
+ * Run security scans using ttssecure module
+ * Generates PDF, HTML, and JSON reports with professional formatting
  *
- * Usage in Jenkinsfile:
+ * Usage in Jenkinsfile (with config file - RECOMMENDED):
+ *   securityScan(
+ *     configFile: 'adxsip-backend.yaml',
+ *     buildNumber: env.BUILD_NUMBER
+ *   )
+ *
+ * Or with inline config:
  *   securityScan(
  *     projectName: 'ADXSIP',
+ *     component: 'backend',
  *     scanDir: '/tts/ttsbuild/ADXSIP/tts-uae-adx-sip-serverside'
  *   )
  */
 def call(Map config = [:]) {
-    // Required parameters
-    if (!config.projectName) {
-        error "projectName is required for security scanning"
+    // ttssecure location
+    def ttssecureDir = config.ttssecureDir ?: "${env.HOME}/jenkins-automation/buildserversetup/ttssecure"
+    def configsDir = "${ttssecureDir}/configs"
+
+    // Build number for report naming
+    def buildNumber = config.buildNumber ?: env.BUILD_NUMBER ?: '1'
+
+    // Report output base directory
+    def reportBaseDir = config.reportBaseDir ?: '/tts/securityreports'
+
+    echo "🔒 Running Security Scan with ttssecure..."
+
+    def scanResult = [:]
+
+    // Determine configuration method
+    if (config.configFile) {
+        // Use YAML config file (RECOMMENDED)
+        def configFile = config.configFile
+        def configPath = configFile.startsWith('/') ? configFile : "${configsDir}/${configFile}"
+
+        echo "Using config file: ${configPath}"
+        echo "Build number: ${buildNumber}"
+
+        def exitCode = sh(
+            script: """
+                cd ${ttssecureDir}
+                pipenv run python ttssecure.py --config ${configPath} --build-number ${buildNumber}
+            """,
+            returnStatus: true
+        )
+
+        scanResult.exitCode = exitCode
+        scanResult.configFile = configPath
+
+    } else if (config.projectName && config.scanDir) {
+        // Inline configuration - for quick testing
+        def projectName = config.projectName
+        def component = config.component ?: 'main'
+        def scanDir = config.scanDir
+        def includePaths = config.includePaths ?: ['src']
+        def excludePaths = config.excludePaths ?: ['node_modules', 'target', '.git']
+
+        echo "Project: ${projectName} (${component})"
+        echo "Scan directory: ${scanDir}"
+
+        // Build include/exclude strings
+        def includeStr = includePaths.collect { "    - \"${it}\"" }.join('\n')
+        def excludeStr = excludePaths.collect { "    - \"${it}\"" }.join('\n')
+
+        // Create temporary YAML config
+        def tempConfig = "/tmp/ttssecure-${projectName}-${component}-${buildNumber}.yaml"
+
+        writeFile file: tempConfig, text: """# Auto-generated config for ${projectName} ${component}
+project:
+  name: "${projectName}"
+  component: "${component}"
+
+source:
+  path: "${scanDir}"
+  include_paths:
+${includeStr}
+  exclude_paths:
+${excludeStr}
+
+metadata:
+  developer_team: "Development Team"
+  developer_contact: "dev@ttsme.com"
+  devsecops_contact: "devsecops@ttsme.com"
+  qa_url: "http://qa.ttsme.com/${projectName}"
+
+output:
+  base_dir: "${reportBaseDir}"
+
+scanners:
+  semgrep:
+    enabled: true
+    config: "auto"
+    timeout: 600
+  trivy:
+    enabled: true
+    severity: "CRITICAL,HIGH,MEDIUM,LOW"
+    timeout: 600
+  trufflehog:
+    enabled: true
+  spotbugs:
+    enabled: ${component == 'backend' || component == 'java' ? 'true' : 'false'}
+  owasp_dependency:
+    enabled: ${component == 'backend' || component == 'java' ? 'true' : 'false'}
+  eslint_security:
+    enabled: ${component == 'frontend' || component == 'angular' ? 'true' : 'false'}
+
+threshold:
+  max_critical: 0
+  max_high: 10
+  max_medium: 50
+  max_low: 100
+  fail_on_secrets: true
+"""
+
+        def exitCode = sh(
+            script: """
+                cd ${ttssecureDir}
+                pipenv run python ttssecure.py --config ${tempConfig} --build-number ${buildNumber}
+                rm -f ${tempConfig}
+            """,
+            returnStatus: true
+        )
+
+        scanResult.exitCode = exitCode
+        scanResult.projectName = projectName
+        scanResult.component = component
+
+    } else {
+        error "securityScan requires either 'configFile' or 'projectName' + 'scanDir' parameters"
     }
-    if (!config.scanDir) {
-        error "scanDir is required for security scanning"
+
+    // Determine scan status
+    switch(scanResult.exitCode) {
+        case 0:
+            echo "✅ Security scan completed - All thresholds passed"
+            scanResult.status = 'PASSED'
+            break
+        case 1:
+            echo "⚠️ Security scan completed - Threshold violations detected"
+            scanResult.status = 'THRESHOLD_EXCEEDED'
+            break
+        case 2:
+            echo "⚠️ Security scan completed - Some scanners failed"
+            scanResult.status = 'PARTIAL_FAILURE'
+            break
+        default:
+            echo "❌ Security scan failed with exit code: ${scanResult.exitCode}"
+            scanResult.status = 'FAILED'
     }
 
-    def projectName = config.projectName
-    def scanDir = config.scanDir
-    def enableSemgrep = config.enableSemgrep != false
-    def enableTrivy = config.enableTrivy != false
-    def enableTruffleHog = config.enableTruffleHog != false
+    echo "📊 Reports available at: ${reportBaseDir}/"
 
-    // Output directories
-    def reportBaseDir = "/tts/ttsbuild/securityreport/${projectName}"
-    def reportDir = "${reportBaseDir}/report"
-    def scriptsDir = "${env.HOME}/jenkins-automation/buildserversetup/scripts"
+    // Return results for downstream use
+    scanResult.reportDir = reportBaseDir
+    scanResult.buildNumber = buildNumber
 
-    echo "🔒 Running security scans for ${projectName}..."
-    echo "Scan directory: ${scanDir}"
-    echo "Reports will be saved to: ${reportBaseDir}"
-
-    // Create report directories
-    sh """
-        mkdir -p ${reportBaseDir}
-        mkdir -p ${reportDir}
-    """
-
-    def scanResults = [:]
-
-    // Run scans in scan directory using cd (no @tmp pollution)
-    sh """
-        cd ${scanDir}
-
-        ${enableSemgrep ? """
-        # Run Semgrep (SAST)
-        echo "Running Semgrep (SAST)..."
-        semgrep --config=auto \
-            --json \
-            --output=${reportBaseDir}/semgrep-report.json \
-            . || true
-        echo "✅ Semgrep scan completed"
-        """ : ''}
-
-        ${enableTrivy ? """
-        # Run Trivy (Dependency Scan)
-        echo "Running Trivy (Dependency Scan)..."
-        trivy fs \
-            --format json \
-            --output ${reportBaseDir}/trivy-report.json \
-            --severity HIGH,CRITICAL \
-            . || true
-        echo "✅ Trivy scan completed"
-        """ : ''}
-
-        ${enableTruffleHog ? """
-        # Run TruffleHog (Secret Scan)
-        echo "Running TruffleHog (Secret Scan)..."
-        trufflehog filesystem . \
-            --json \
-            --no-update \
-            > ${reportBaseDir}/trufflehog-report.json || true
-        echo "✅ TruffleHog scan completed"
-        """ : ''}
-    """
-
-    if (enableSemgrep) scanResults.semgrep = 'COMPLETED'
-    if (enableTrivy) scanResults.trivy = 'COMPLETED'
-    if (enableTruffleHog) scanResults.truffleHog = 'COMPLETED'
-
-    // Generate PDF report using Python script
-    echo "📄 Generating PDF report..."
-    try {
-        sh """
-            cd ${reportBaseDir}
-            python3 ${scriptsDir}/generate_report.py \
-                --project-name "${projectName}" \
-                --semgrep semgrep-report.json \
-                --trivy trivy-report.json \
-                --trufflehog trufflehog-report.json \
-                --output report/security-report.pdf \
-                --logo ${scriptsDir}/logo.png || true
-        """
-        echo "✅ PDF report generated: ${reportDir}/security-report.pdf"
-    } catch (Exception e) {
-        echo "⚠️ PDF report generation failed: ${e.message}"
-    }
-
-    // Generate summary report
-    echo """
-
-    📊 Security Scan Summary:
-    ========================
-    Project: ${projectName}
-    Semgrep (SAST):        ${scanResults.semgrep ?: 'SKIPPED'}
-    Trivy (Dependencies):  ${scanResults.trivy ?: 'SKIPPED'}
-    TruffleHog (Secrets):  ${scanResults.truffleHog ?: 'SKIPPED'}
-
-    Reports saved to: ${reportBaseDir}/
-    - semgrep-report.json
-    - trivy-report.json
-    - trufflehog-report.json
-    - report/security-report.pdf
-    """
-
-    // Archive reports for Jenkins
-    archiveArtifacts artifacts: "${reportBaseDir}/*.json", allowEmptyArchive: true
-    archiveArtifacts artifacts: "${reportDir}/*.pdf", allowEmptyArchive: true
-
-    return scanResults
+    return scanResult
 }
