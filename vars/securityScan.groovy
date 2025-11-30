@@ -42,7 +42,8 @@ def call(Map config = [:]) {
         echo "Build number: ${buildNumber}"
 
         def exitCode = sh(
-            script: """
+            script: """#!/bin/bash
+                export PATH="\$HOME/.local/bin:\$PATH"
                 cd ${ttssecureDir}
                 pipenv run python ttssecure.py --config ${configPath} --build-number ${buildNumber}
             """,
@@ -118,7 +119,8 @@ threshold:
 """
 
         def exitCode = sh(
-            script: """
+            script: """#!/bin/bash
+                export PATH="\$HOME/.local/bin:\$PATH"
                 cd ${ttssecureDir}
                 pipenv run python ttssecure.py --config ${tempConfig} --build-number ${buildNumber}
                 rm -f ${tempConfig}
