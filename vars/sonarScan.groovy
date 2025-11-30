@@ -31,9 +31,9 @@ def call(Map config = [:]) {
     withSonarQubeEnv(sonarServer) {
         if (language == 'java' || language == 'maven') {
             // Maven project - use mvn sonar:sonar
-            sh """
+            sh """#!/bin/bash
                 export SDKMAN_DIR="\$HOME/.sdkman"
-                . "\$SDKMAN_DIR/bin/sdkman-init.sh"
+                source "\$SDKMAN_DIR/bin/sdkman-init.sh"
 
                 mvn sonar:sonar \
                     -Dsonar.projectKey=${projectKey} \

@@ -28,7 +28,7 @@ def call(Map config = [:]) {
         echo "Build directory: ${buildDir}"
 
         // Build in permanent directory using cd (no @tmp pollution)
-        sh """
+        sh """#!/bin/bash
             cd ${buildDir}
 
             # Update code if in permanent directory
@@ -36,7 +36,7 @@ def call(Map config = [:]) {
 
             # Setup Java environment and build
             export SDKMAN_DIR="\$HOME/.sdkman"
-            . "\$SDKMAN_DIR/bin/sdkman-init.sh"
+            source "\$SDKMAN_DIR/bin/sdkman-init.sh"
             sdk use java ${javaVersion}
 
             # Verify Java version
@@ -48,9 +48,9 @@ def call(Map config = [:]) {
         """
     } else {
         // Build in current workspace (code already checked out)
-        sh """
+        sh """#!/bin/bash
             export SDKMAN_DIR="\$HOME/.sdkman"
-            . "\$SDKMAN_DIR/bin/sdkman-init.sh"
+            source "\$SDKMAN_DIR/bin/sdkman-init.sh"
             sdk use java ${javaVersion}
 
             # Verify Java version

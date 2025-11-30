@@ -29,7 +29,7 @@ def call(Map config = [:]) {
         echo "Build directory: ${buildDir}"
 
         // Build in permanent directory using cd (no @tmp pollution)
-        sh """
+        sh """#!/bin/bash
             cd ${buildDir}
 
             # Update code if in permanent directory
@@ -37,7 +37,7 @@ def call(Map config = [:]) {
 
             # Setup Node environment and build
             export NVM_DIR="\$HOME/.nvm"
-            [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
+            [ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh"
 
             # Use specified Node version
             nvm use ${nodeVersion}
@@ -57,9 +57,9 @@ def call(Map config = [:]) {
         """
     } else {
         // Build in current workspace
-        sh """
+        sh """#!/bin/bash
             export NVM_DIR="\$HOME/.nvm"
-            [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
+            [ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh"
 
             # Use specified Node version
             nvm use ${nodeVersion}
