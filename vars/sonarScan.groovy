@@ -32,8 +32,8 @@ def call(Map config = [:]) {
         if (language == 'java' || language == 'maven') {
             // Maven project - use mvn sonar:sonar
             sh """
-                export SDKMAN_DIR="/home/jenkins-agent/.sdkman"
-                source "\$SDKMAN_DIR/bin/sdkman-init.sh"
+                export SDKMAN_DIR="\$HOME/.sdkman"
+                . "\$SDKMAN_DIR/bin/sdkman-init.sh"
 
                 mvn sonar:sonar \
                     -Dsonar.projectKey=${projectKey} \

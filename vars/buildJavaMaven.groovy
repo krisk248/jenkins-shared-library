@@ -36,7 +36,7 @@ def call(Map config = [:]) {
 
             # Setup Java environment and build
             export SDKMAN_DIR="\$HOME/.sdkman"
-            source "\$SDKMAN_DIR/bin/sdkman-init.sh"
+            . "\$SDKMAN_DIR/bin/sdkman-init.sh"
             sdk use java ${javaVersion}
 
             # Verify Java version
@@ -50,7 +50,7 @@ def call(Map config = [:]) {
         // Build in current workspace (code already checked out)
         sh """
             export SDKMAN_DIR="\$HOME/.sdkman"
-            source "\$SDKMAN_DIR/bin/sdkman-init.sh"
+            . "\$SDKMAN_DIR/bin/sdkman-init.sh"
             sdk use java ${javaVersion}
 
             # Verify Java version
