@@ -42,9 +42,9 @@ def call(Map config = [:]) {
             # Verify Java version
             java -version
 
-            # Run Maven build
+            # Run Maven build (batch mode -B disables ANSI colors)
             export MAVEN_OPTS="${mavenOpts}"
-            mvn ${mavenGoals} ${skipTests ? '-DskipTests' : ''}
+            mvn -B ${mavenGoals} ${skipTests ? '-DskipTests' : ''}
         """
     } else {
         // Build in current workspace (code already checked out)
@@ -56,9 +56,9 @@ def call(Map config = [:]) {
             # Verify Java version
             java -version
 
-            # Run Maven build
+            # Run Maven build (batch mode -B disables ANSI colors)
             export MAVEN_OPTS="${mavenOpts}"
-            mvn ${mavenGoals} ${skipTests ? '-DskipTests' : ''}
+            mvn -B ${mavenGoals} ${skipTests ? '-DskipTests' : ''}
         """
     }
 

@@ -35,7 +35,7 @@ def call(Map config = [:]) {
                 export SDKMAN_DIR="\$HOME/.sdkman"
                 source "\$SDKMAN_DIR/bin/sdkman-init.sh"
 
-                mvn sonar:sonar \
+                mvn -B sonar:sonar \
                     -Dsonar.projectKey=${projectKey} \
                     -Dsonar.projectName="${projectName}"
             """
