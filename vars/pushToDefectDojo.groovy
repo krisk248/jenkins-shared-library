@@ -99,25 +99,46 @@ def call(Map config = [:]) {
  * Get engagement ID by name, or create if not exists
  */
 def getOrCreateEngagement(String baseUrl, String productName, String engagementName) {
+    // URL encode the product name (simple replacement for common chars)
+    def encodedProductName = productName.replaceAll(' ', '%20')
+    def encodedEngagementName = engagementName.replaceAll(' ', '%20').replaceAll('/', '%2F')
+
     // First, get product ID
+    echo "   Fetching product: ${productName}..."
     def productResponse = sh(
         script: """
-            curl -s -X GET "${baseUrl}/api/v2/products/?name=${java.net.URLEncoder.encode(productName, 'UTF-8')}" \
+            curl -s -w "\\nHTTP_STATUS:%{http_code}" -X GET "${baseUrl}/api/v2/products/?name=${encodedProductName}" \
                 -H "Authorization: Token \${DD_API_KEY}" \
                 -H "Content-Type: application/json"
         """,
         returnStdout: true
     ).trim()
 
+    // Check HTTP status
+    def productStatusMatch = productResponse =~ /HTTP_STATUS:(\d+)$/
+    def productStatus = productStatusMatch ? productStatusMatch[0][1] : "unknown"
+    def productBody = productResponse.replaceAll(/\nHTTP_STATUS:\d+$/, '')
+
+    echo "   Product API Response Status: ${productStatus}"
+
+    if (productStatus != "200") {
+        echo "   ERROR: DefectDojo API returned status ${productStatus}"
+        echo "   Response: ${productBody.take(500)}"
+        return null
+    }
+
     def productId = null
     try {
-        def productJson = readJSON text: productResponse
+        def productJson = readJSON text: productBody
         if (productJson.results && productJson.results.size() > 0) {
             productId = productJson.results[0].id
             echo "   Found Product ID: ${productId}"
+        } else {
+            echo "   Product search returned 0 results"
         }
     } catch (Exception e) {
         echo "   Warning: Could not parse product response: ${e.message}"
+        echo "   Raw response: ${productBody.take(300)}"
     }
 
     if (!productId) {
@@ -126,22 +147,33 @@ def getOrCreateEngagement(String baseUrl, String productName, String engagementN
     }
 
     // Get engagement ID
+    echo "   Fetching engagement: ${engagementName}..."
     def engResponse = sh(
         script: """
-            curl -s -X GET "${baseUrl}/api/v2/engagements/?product=${productId}&name=${java.net.URLEncoder.encode(engagementName, 'UTF-8')}" \
+            curl -s -w "\\nHTTP_STATUS:%{http_code}" -X GET "${baseUrl}/api/v2/engagements/?product=${productId}&name=${encodedEngagementName}" \
                 -H "Authorization: Token \${DD_API_KEY}" \
                 -H "Content-Type: application/json"
         """,
         returnStdout: true
     ).trim()
 
+    def engStatusMatch = engResponse =~ /HTTP_STATUS:(\d+)$/
+    def engStatus = engStatusMatch ? engStatusMatch[0][1] : "unknown"
+    def engBody = engResponse.replaceAll(/\nHTTP_STATUS:\d+$/, '')
+
+    echo "   Engagement API Response Status: ${engStatus}"
+
     try {
-        def engJson = readJSON text: engResponse
+        def engJson = readJSON text: engBody
         if (engJson.results && engJson.results.size() > 0) {
+            echo "   Found Engagement ID: ${engJson.results[0].id}"
             return engJson.results[0].id
+        } else {
+            echo "   Engagement search returned 0 results"
         }
     } catch (Exception e) {
         echo "   Warning: Could not parse engagement response: ${e.message}"
+        echo "   Raw response: ${engBody.take(300)}"
     }
 
     echo "   Engagement '${engagementName}' not found"
