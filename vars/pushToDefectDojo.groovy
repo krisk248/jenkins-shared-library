@@ -97,99 +97,80 @@ def call(Map config = [:]) {
 
 /**
  * Get engagement ID by name, or create if not exists
+ * Uses jq for JSON parsing (no plugin required)
  */
 def getOrCreateEngagement(String baseUrl, String productName, String engagementName) {
     // URL encode the product name (simple replacement for common chars)
     def encodedProductName = productName.replaceAll(' ', '%20')
     def encodedEngagementName = engagementName.replaceAll(' ', '%20').replaceAll('/', '%2F')
 
-    // First, get product ID
+    // First, get product ID using jq to parse
     echo "   Fetching product: ${productName}..."
-    def productResponse = sh(
+    def productId = sh(
         script: """
-            curl -s -w "\\nHTTP_STATUS:%{http_code}" -X GET "${baseUrl}/api/v2/products/?name=${encodedProductName}" \
+            response=\$(curl -s -X GET "${baseUrl}/api/v2/products/?name=${encodedProductName}" \
                 -H "Authorization: Token \${DD_API_KEY}" \
-                -H "Content-Type: application/json"
+                -H "Content-Type: application/json")
+
+            # Extract product ID using jq
+            product_id=\$(echo "\$response" | jq -r '.results[0].id // empty')
+
+            if [ -n "\$product_id" ] && [ "\$product_id" != "null" ]; then
+                echo "\$product_id"
+            else
+                echo ""
+            fi
         """,
         returnStdout: true
     ).trim()
-
-    // Check HTTP status
-    def productStatusMatch = productResponse =~ /HTTP_STATUS:(\d+)$/
-    def productStatus = productStatusMatch ? productStatusMatch[0][1] : "unknown"
-    def productBody = productResponse.replaceAll(/\nHTTP_STATUS:\d+$/, '')
-
-    echo "   Product API Response Status: ${productStatus}"
-
-    if (productStatus != "200") {
-        echo "   ERROR: DefectDojo API returned status ${productStatus}"
-        echo "   Response: ${productBody.take(500)}"
-        return null
-    }
-
-    def productId = null
-    try {
-        def productJson = readJSON text: productBody
-        if (productJson.results && productJson.results.size() > 0) {
-            productId = productJson.results[0].id
-            echo "   Found Product ID: ${productId}"
-        } else {
-            echo "   Product search returned 0 results"
-        }
-    } catch (Exception e) {
-        echo "   Warning: Could not parse product response: ${e.message}"
-        echo "   Raw response: ${productBody.take(300)}"
-    }
 
     if (!productId) {
         echo "   Product '${productName}' not found in DefectDojo"
         return null
     }
 
-    // Get engagement ID
+    echo "   Found Product ID: ${productId}"
+
+    // Get engagement ID using jq
     echo "   Fetching engagement: ${engagementName}..."
-    def engResponse = sh(
+    def engagementId = sh(
         script: """
-            curl -s -w "\\nHTTP_STATUS:%{http_code}" -X GET "${baseUrl}/api/v2/engagements/?product=${productId}&name=${encodedEngagementName}" \
+            response=\$(curl -s -X GET "${baseUrl}/api/v2/engagements/?product=${productId}" \
                 -H "Authorization: Token \${DD_API_KEY}" \
-                -H "Content-Type: application/json"
+                -H "Content-Type: application/json")
+
+            # Extract engagement ID using jq (first match)
+            eng_id=\$(echo "\$response" | jq -r '.results[0].id // empty')
+
+            if [ -n "\$eng_id" ] && [ "\$eng_id" != "null" ]; then
+                echo "\$eng_id"
+            else
+                echo ""
+            fi
         """,
         returnStdout: true
     ).trim()
 
-    def engStatusMatch = engResponse =~ /HTTP_STATUS:(\d+)$/
-    def engStatus = engStatusMatch ? engStatusMatch[0][1] : "unknown"
-    def engBody = engResponse.replaceAll(/\nHTTP_STATUS:\d+$/, '')
-
-    echo "   Engagement API Response Status: ${engStatus}"
-
-    try {
-        def engJson = readJSON text: engBody
-        if (engJson.results && engJson.results.size() > 0) {
-            echo "   Found Engagement ID: ${engJson.results[0].id}"
-            return engJson.results[0].id
-        } else {
-            echo "   Engagement search returned 0 results"
-        }
-    } catch (Exception e) {
-        echo "   Warning: Could not parse engagement response: ${e.message}"
-        echo "   Raw response: ${engBody.take(300)}"
+    if (!engagementId) {
+        echo "   Engagement '${engagementName}' not found"
+        return null
     }
 
-    echo "   Engagement '${engagementName}' not found"
-    return null
+    echo "   Found Engagement ID: ${engagementId}"
+    return engagementId
 }
 
 /**
  * Import a scan file to DefectDojo
+ * Uses jq for JSON parsing (no plugin required)
  */
 def importScan(String baseUrl, def engagementId, String filePath, String scanType) {
     def result = [success: false]
 
     try {
-        def response = sh(
+        def testId = sh(
             script: """
-                curl -s -X POST "${baseUrl}/api/v2/import-scan/" \
+                response=\$(curl -s -X POST "${baseUrl}/api/v2/import-scan/" \
                     -H "Authorization: Token \${DD_API_KEY}" \
                     -F "engagement=${engagementId}" \
                     -F "scan_type=${scanType}" \
@@ -197,21 +178,34 @@ def importScan(String baseUrl, def engagementId, String filePath, String scanTyp
                     -F "active=true" \
                     -F "verified=false" \
                     -F "close_old_findings=false" \
-                    -F "push_to_jira=false"
+                    -F "push_to_jira=false")
+
+                # Extract test_id using jq
+                test_id=\$(echo "\$response" | jq -r '.test_id // .test // empty')
+
+                if [ -n "\$test_id" ] && [ "\$test_id" != "null" ]; then
+                    echo "\$test_id"
+                else
+                    # Check for error message
+                    error=\$(echo "\$response" | jq -r '.detail // .error // empty')
+                    if [ -n "\$error" ]; then
+                        echo "ERROR:\$error" >&2
+                    fi
+                    echo ""
+                fi
             """,
             returnStdout: true
         ).trim()
 
-        def responseJson = readJSON text: response
-        if (responseJson.test_id) {
-            echo "      Imported: ${scanType} (Test ID: ${responseJson.test_id})"
+        if (testId && !testId.startsWith("ERROR:")) {
+            echo "      ✅ Imported: ${scanType} (Test ID: ${testId})"
             result.success = true
-            result.testId = responseJson.test_id
+            result.testId = testId
         } else {
-            echo "      Warning: ${scanType} import may have issues: ${response}"
+            echo "      ⚠️ Warning: ${scanType} import may have issues"
         }
     } catch (Exception e) {
-        echo "      Error importing ${scanType}: ${e.message}"
+        echo "      ❌ Error importing ${scanType}: ${e.message}"
         result.error = e.message
     }
 
