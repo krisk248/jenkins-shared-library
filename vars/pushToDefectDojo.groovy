@@ -26,11 +26,11 @@ def call(Map config = [:]) {
     def engagementName = config.engagementName ?: 'CI/CD Security Scans'
 
     // Report location
-    def reportDir = config.reportDir ?: '/tts/securityreports'
+    def reportDir = config.reportDir ?: '/tts/securityreports/ADXSIP'
     def buildNumber = config.buildNumber ?: env.BUILD_NUMBER ?: '1'
 
-    // Build-specific report directory
-    def buildReportDir = "${reportDir}/${buildNumber}"
+    // Build-specific report directory (raw JSON files are in /raw subfolder)
+    def buildReportDir = "${reportDir}/${buildNumber}/raw"
 
     echo "════════════════════════════════════════════════════════════"
     echo "🛡️ Push to DefectDojo"
@@ -55,31 +55,36 @@ def call(Map config = [:]) {
         echo "   Engagement ID: ${engagementId}"
 
         // Import Trivy results
-        def trivyFile = "${buildReportDir}/trivy-results.json"
+        def trivyFile = "${buildReportDir}/trivy.json"
         if (fileExists(trivyFile)) {
             echo "   Importing Trivy results..."
             importResults.trivy = importScan(defectDojoUrl, engagementId, trivyFile, 'Trivy Scan')
+        } else {
+            echo "   Trivy file not found: ${trivyFile}"
         }
 
         // Import Semgrep results
-        def semgrepFile = "${buildReportDir}/semgrep-results.json"
+        def semgrepFile = "${buildReportDir}/semgrep.json"
         if (fileExists(semgrepFile)) {
             echo "   Importing Semgrep results..."
             importResults.semgrep = importScan(defectDojoUrl, engagementId, semgrepFile, 'Semgrep JSON Report')
+        } else {
+            echo "   Semgrep file not found: ${semgrepFile}"
         }
 
         // Import TruffleHog results
-        def trufflehogFile = "${buildReportDir}/trufflehog-results.json"
+        def trufflehogFile = "${buildReportDir}/trufflehog.json"
         if (fileExists(trufflehogFile)) {
             echo "   Importing TruffleHog results..."
             importResults.trufflehog = importScan(defectDojoUrl, engagementId, trufflehogFile, 'Trufflehog Scan')
+        } else {
+            echo "   TruffleHog file not found: ${trufflehogFile}"
         }
 
-        // Try alternative file patterns
-        def files = sh(script: "ls -1 ${buildReportDir}/*.json 2>/dev/null || true", returnStdout: true).trim()
-        if (files) {
-            echo "   Found JSON files: ${files}"
-        }
+        // List available files for debugging
+        def files = sh(script: "ls -la ${buildReportDir}/ 2>/dev/null || echo 'Directory not found'", returnStdout: true).trim()
+        echo "   Available files in ${buildReportDir}:"
+        echo "   ${files}"
     }
 
     echo "────────────────────────────────────────────────────────────"
