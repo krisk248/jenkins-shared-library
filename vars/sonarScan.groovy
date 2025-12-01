@@ -7,22 +7,7 @@
  * - 5 minute timeout protection (prevents stuck builds)
  * - Memory limits for scanner (prevents OOM)
  * - Optimized for TypeScript/Angular (skips node_modules properly)
- * - Auto-generates sonar-project.properties in workspace (not in source)
- *
- * Usage for Java/Maven:
- *   sonarScan(
- *     projectKey: 'my-backend',
- *     projectName: 'My Backend',
- *     language: 'java'
- *   )
- *
- * Usage for TypeScript/Angular:
- *   sonarScan(
- *     projectKey: 'my-frontend',
- *     projectName: 'My Frontend',
- *     sources: 'src',
- *     language: 'ts'
- *   )
+ * - Uses Jenkins SonarQube credentials automatically
  */
 def call(Map config = [:]) {
     // Required parameters
@@ -57,6 +42,9 @@ def call(Map config = [:]) {
     // Wrap everything in timeout
     timeout(time: timeoutMinutes, unit: 'MINUTES') {
         withSonarQubeEnv(sonarServer) {
+            // Get token from environment (injected by withSonarQubeEnv)
+            def sonarToken = env.SONAR_AUTH_TOKEN ?: env.SONAR_TOKEN ?: ''
+
             if (language == 'java' || language == 'maven') {
                 // Maven project - use mvn sonar:sonar (already optimized)
                 echo "Using Maven SonarQube plugin..."
@@ -67,14 +55,14 @@ def call(Map config = [:]) {
                     mvn -B sonar:sonar \
                         -Dsonar.projectKey=${projectKey} \
                         -Dsonar.projectName="${projectName}" \
-                        -Dsonar.host.url=${sonarUrl}
+                        -Dsonar.host.url=${sonarUrl} \
+                        -Dsonar.token=\${SONAR_AUTH_TOKEN}
                 """
             } else if (language == 'ts' || language == 'typescript' || language == 'angular' || language == 'js' || language == 'javascript') {
                 // TypeScript/Angular/JavaScript - use optimized sonar-scanner
                 echo "Using optimized sonar-scanner for ${language}..."
 
-                // Run scanner with memory limits - pass all config via command line
-                // No sonar-project.properties file needed in source code!
+                // Run scanner with memory limits and authentication
                 sh """#!/bin/bash
                     echo "Starting sonar-scanner with memory limit ${maxMemory}..."
 
@@ -85,6 +73,7 @@ def call(Map config = [:]) {
                     # Run scanner with all parameters on command line
                     sonar-scanner \
                         -Dsonar.host.url=${sonarUrl} \
+                        -Dsonar.token=\${SONAR_AUTH_TOKEN} \
                         -Dsonar.projectKey=${projectKey} \
                         -Dsonar.projectName="${projectName}" \
                         -Dsonar.sources=${sources} \
@@ -106,6 +95,7 @@ def call(Map config = [:]) {
 
                     sonar-scanner \
                         -Dsonar.host.url=${sonarUrl} \
+                        -Dsonar.token=\${SONAR_AUTH_TOKEN} \
                         -Dsonar.projectKey=${projectKey} \
                         -Dsonar.projectName="${projectName}" \
                         -Dsonar.sources=${sources} \
