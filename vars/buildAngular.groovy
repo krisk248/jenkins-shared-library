@@ -61,10 +61,15 @@ def call(Map config = [:]) {
             # Update code if requested
             ${updateCode ? (useSvn ? 'svn update -q' : (gitBranch ? 'git checkout ' + gitBranch + ' -q && git pull -q' : 'git pull -q')) : ''}
 
-            # Setup Node environment
-            export NVM_DIR="\$HOME/.nvm"
-            [ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh"
-            nvm use ${nodeVersion} > /dev/null
+            # Setup Node environment - use system Node if available, fallback to nvm
+            if command -v node &> /dev/null; then
+                echo "   Using system Node: \$(node --version)"
+            elif [ -s "\$HOME/.nvm/nvm.sh" ]; then
+                export NVM_DIR="\$HOME/.nvm"
+                source "\$NVM_DIR/nvm.sh"
+                nvm use ${nodeVersion} > /dev/null 2>&1 || nvm use default > /dev/null 2>&1 || true
+                echo "   Using nvm Node: \$(node --version)"
+            fi
 
             echo "   Node: \$(node --version) | npm: \$(npm --version)"
 
@@ -83,9 +88,16 @@ def call(Map config = [:]) {
         // Build in current workspace
         sh """#!/bin/bash
             set -e
-            export NVM_DIR="\$HOME/.nvm"
-            [ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh"
-            nvm use ${nodeVersion} > /dev/null
+
+            # Setup Node environment - use system Node if available, fallback to nvm
+            if command -v node &> /dev/null; then
+                echo "   Using system Node: \$(node --version)"
+            elif [ -s "\$HOME/.nvm/nvm.sh" ]; then
+                export NVM_DIR="\$HOME/.nvm"
+                source "\$NVM_DIR/nvm.sh"
+                nvm use ${nodeVersion} > /dev/null 2>&1 || nvm use default > /dev/null 2>&1 || true
+                echo "   Using nvm Node: \$(node --version)"
+            fi
 
             echo "   Node: \$(node --version) | npm: \$(npm --version)"
 
