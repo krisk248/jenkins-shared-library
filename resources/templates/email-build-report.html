@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Report</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%); padding: 30px; border-radius: 8px 8px 0 0;">
+                            <table role="presentation" style="width: 100%;">
+                                <tr>
+                                    <td>
+                                        <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
+                                            TTS DevSecOps
+                                        </h1>
+                                        <p style="margin: 5px 0 0 0; color: #90caf9; font-size: 14px;">
+                                            Build Report
+                                        </p>
+                                    </td>
+                                    <td align="right">
+                                        <span style="background-color: ${STATUS_BG_COLOR}; color: #ffffff; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                                            ${STATUS_EMOJI} ${BUILD_STATUS}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Project Title -->
+                    <tr>
+                        <td style="padding: 30px 30px 20px 30px; border-bottom: 1px solid #e0e0e0;">
+                            <h2 style="margin: 0; color: #1a237e; font-size: 22px;">
+                                ${PROJECT_NAME} ${COMPONENT}
+                            </h2>
+                            <p style="margin: 8px 0 0 0; color: #666666; font-size: 14px;">
+                                Build #${BUILD_NUMBER} | ${BUILD_TIMESTAMP}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Build Information -->
+                    <tr>
+                        <td style="padding: 25px 30px;">
+                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 0 0 20px 0;">
+                                        <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 16px; border-left: 4px solid #1a237e; padding-left: 12px;">
+                                            Build Information
+                                        </h3>
+                                        <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fafafa; border-radius: 6px;">
+                                            <tr>
+                                                <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee; width: 140px; color: #666666; font-size: 13px;">Branch</td>
+                                                <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee; color: #333333; font-size: 13px; font-weight: 500;">${GIT_BRANCH}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee; color: #666666; font-size: 13px;">Duration</td>
+                                                <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee; color: #333333; font-size: 13px; font-weight: 500;">${BUILD_DURATION}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 12px 15px; color: #666666; font-size: 13px;">Deployed To</td>
+                                                <td style="padding: 12px 15px; color: #333333; font-size: 13px; font-weight: 500;">${DEPLOY_PATH}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Security Scan Section -->
+                    <tr>
+                        <td style="padding: 0 30px 25px 30px;">
+                            <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 16px; border-left: 4px solid #ff5722; padding-left: 12px;">
+                                Security Scan Results
+                            </h3>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fff8e1; border-radius: 6px; border: 1px solid #ffe082;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <table role="presentation" style="width: 100%;">
+                                            <tr>
+                                                <td style="text-align: center; padding: 0 10px;">
+                                                    <div style="background-color: #f44336; color: #ffffff; width: 50px; height: 50px; border-radius: 50%; line-height: 50px; font-size: 18px; font-weight: bold; margin: 0 auto;">${SECURITY_HIGH}</div>
+                                                    <p style="margin: 8px 0 0 0; color: #666666; font-size: 12px;">HIGH</p>
+                                                </td>
+                                                <td style="text-align: center; padding: 0 10px;">
+                                                    <div style="background-color: #ff9800; color: #ffffff; width: 50px; height: 50px; border-radius: 50%; line-height: 50px; font-size: 18px; font-weight: bold; margin: 0 auto;">${SECURITY_MEDIUM}</div>
+                                                    <p style="margin: 8px 0 0 0; color: #666666; font-size: 12px;">MEDIUM</p>
+                                                </td>
+                                                <td style="text-align: center; padding: 0 10px;">
+                                                    <div style="background-color: #4caf50; color: #ffffff; width: 50px; height: 50px; border-radius: 50%; line-height: 50px; font-size: 18px; font-weight: bold; margin: 0 auto;">${SECURITY_LOW}</div>
+                                                    <p style="margin: 8px 0 0 0; color: #666666; font-size: 12px;">LOW</p>
+                                                </td>
+                                                <td style="text-align: left; padding-left: 30px;">
+                                                    <p style="margin: 0; color: #333333; font-size: 14px;">Risk Level</p>
+                                                    <p style="margin: 5px 0 0 0; color: ${RISK_COLOR}; font-size: 20px; font-weight: bold;">${RISK_LEVEL} (${RISK_SCORE})</p>
+                                                    <p style="margin: 8px 0 0 0; color: #4caf50; font-size: 13px;">${SECURITY_STATUS_TEXT}</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Code Quality Section -->
+                    <tr>
+                        <td style="padding: 0 30px 25px 30px;">
+                            <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 16px; border-left: 4px solid #2196f3; padding-left: 12px;">
+                                Code Quality (SonarQube)
+                            </h3>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #e3f2fd; border-radius: 6px; border: 1px solid #90caf9;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <a href="${SONARQUBE_URL}" style="display: inline-block; background-color: #1976d2; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
+                                            View SonarQube Dashboard
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Attachments Note -->
+                    <tr>
+                        <td style="padding: 0 30px 25px 30px;">
+                            <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 16px; border-left: 4px solid #9c27b0; padding-left: 12px;">
+                                Attachments
+                            </h3>
+                            <p style="margin: 0; color: #666666; font-size: 13px; background-color: #f3e5f5; padding: 15px; border-radius: 6px;">
+                                Security scan reports (PDF and HTML) are attached to this email for your review.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Action Buttons -->
+                    <tr>
+                        <td style="padding: 0 30px 30px 30px;">
+                            <table role="presentation" style="width: 100%;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="${BUILD_URL}" style="display: inline-block; background-color: #1a237e; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; margin: 0 8px;">
+                                            View Build
+                                        </a>
+                                        <a href="${BUILD_URL}console" style="display: inline-block; background-color: #455a64; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; margin: 0 8px;">
+                                            View Console
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f5f5f5; padding: 20px 30px; border-radius: 0 0 8px 8px; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; color: #999999; font-size: 12px; text-align: center;">
+                                TTS DevSecOps Team | Automated CI/CD Report<br>
+                                This is an automated message from Jenkins
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

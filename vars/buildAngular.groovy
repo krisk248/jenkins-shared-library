@@ -5,83 +5,104 @@
  * Supports building in permanent directory (with svn/git update) or workspace
  *
  * Usage in Jenkinsfile:
+ *   // Simple usage with baseHref
  *   buildAngular(
- *     buildDir: '/tts/ttsbuild/IPO-MIG/frontend/package/horizontal',
+ *     buildDir: '/tts/ttsbuild/ADXSIP/tts-uae-adx-sip-clientside',
  *     nodeVersion: '20',
- *     buildCommand: 'ng build --aot --base-href="/TTS-CAP/" --configuration=production',
- *     useSvn: true
+ *     baseHref: '/TTS-CAP/'
+ *   )
+ *
+ *   // Custom build command
+ *   buildAngular(
+ *     buildDir: '/tts/ttsbuild/IPO-MIG/frontend',
+ *     nodeVersion: '20',
+ *     buildCommand: 'gulp build --prod'
  *   )
  */
 def call(Map config = [:]) {
     // Default values
-    def buildDir = config.buildDir ?: ''  // If empty, build in current directory
+    def buildDir = config.buildDir ?: ''
     def nodeVersion = config.nodeVersion ?: '20'
-    def buildCommand = config.buildCommand ?: 'npm run build'
     def installCommand = config.installCommand ?: 'npm ci'
     def distDir = config.distDir ?: 'dist'
     def useSvn = config.useSvn ?: false
-    def updateCode = config.updateCode != false  // Update by default if buildDir specified
-    def gitBranch = config.gitBranch ?: ''  // Optional: specify branch to checkout
+    def updateCode = config.updateCode != false
+    def gitBranch = config.gitBranch ?: ''
 
-    echo "⚛️ Building Angular project with Node.js ${nodeVersion}"
-    echo "Build command: ${buildCommand}"
+    // Build command - support baseHref shorthand or custom command
+    def baseHref = config.baseHref ?: ''
+    def buildCommand = config.buildCommand ?: ''
+
+    // If no buildCommand but baseHref provided, construct Angular CLI command
+    if (!buildCommand && baseHref) {
+        buildCommand = "ng build --configuration=production --aot --output-hashing=all --base-href=\"${baseHref}\""
+    } else if (!buildCommand) {
+        buildCommand = 'npm run build'
+    }
+
+    // Summary log (clean output)
+    echo "════════════════════════════════════════════════════════════"
+    echo "⚛️ Angular Build"
+    echo "────────────────────────────────────────────────────────────"
+    echo "   Directory   : ${buildDir ?: 'workspace'}"
+    echo "   Node.js     : ${nodeVersion}"
+    if (baseHref) {
+        echo "   Base Href   : ${baseHref}"
+    }
+    echo "   Command     : ${buildCommand}"
+    echo "════════════════════════════════════════════════════════════"
 
     if (buildDir) {
-        echo "Build directory: ${buildDir}"
-        if (gitBranch && !useSvn) {
-            echo "Git branch: ${gitBranch}"
-        }
-
-        // Build in permanent directory using cd (no @tmp pollution)
+        // Build in permanent directory using cd
         sh """#!/bin/bash
+            set -e
             cd ${buildDir}
 
-            # Update code if in permanent directory
-            ${updateCode ? (useSvn ? 'echo "📥 Updating code from SVN..." && svn update' : (gitBranch ? 'echo "📥 Checking out branch ' + gitBranch + '..." && git checkout ' + gitBranch + ' && git pull' : 'echo "📥 Pulling latest code..." && git pull')) : ''}
+            # Update code if requested
+            ${updateCode ? (useSvn ? 'svn update -q' : (gitBranch ? 'git checkout ' + gitBranch + ' -q && git pull -q' : 'git pull -q')) : ''}
 
-            # Setup Node environment and build
+            # Setup Node environment
             export NVM_DIR="\$HOME/.nvm"
             [ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh"
+            nvm use ${nodeVersion} > /dev/null
 
-            # Use specified Node version
-            nvm use ${nodeVersion}
+            echo "   Node: \$(node --version) | npm: \$(npm --version)"
 
-            # Verify Node and npm versions
-            node --version
-            npm --version
-
-            # Install dependencies
-            ${installCommand}
+            # Install dependencies (quiet)
+            ${installCommand} --silent 2>/dev/null || ${installCommand}
 
             # Run build
             ${buildCommand}
 
-            # Verify build output
-            ls -la ${distDir}/
+            # Verify output exists
+            if [ -d "${distDir}" ]; then
+                echo "   Output: ${distDir}/ (\$(du -sh ${distDir} | cut -f1))"
+            fi
         """
     } else {
         // Build in current workspace
         sh """#!/bin/bash
+            set -e
             export NVM_DIR="\$HOME/.nvm"
             [ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh"
+            nvm use ${nodeVersion} > /dev/null
 
-            # Use specified Node version
-            nvm use ${nodeVersion}
+            echo "   Node: \$(node --version) | npm: \$(npm --version)"
 
-            # Verify Node and npm versions
-            node --version
-            npm --version
-
-            # Install dependencies
-            ${installCommand}
+            # Install dependencies (quiet)
+            ${installCommand} --silent 2>/dev/null || ${installCommand}
 
             # Run build
             ${buildCommand}
 
-            # Verify build output
-            ls -la ${distDir}/
+            # Verify output exists
+            if [ -d "${distDir}" ]; then
+                echo "   Output: ${distDir}/ (\$(du -sh ${distDir} | cut -f1))"
+            fi
         """
     }
 
-    echo "✅ Angular build completed successfully"
+    echo "────────────────────────────────────────────────────────────"
+    echo "✅ Angular Build: COMPLETED"
+    echo "════════════════════════════════════════════════════════════"
 }

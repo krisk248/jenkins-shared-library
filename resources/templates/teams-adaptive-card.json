@@ -1,0 +1,231 @@
+{
+    "type": "message",
+    "attachments": [
+        {
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "contentUrl": null,
+            "content": {
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "type": "AdaptiveCard",
+                "version": "1.4",
+                "body": [
+                    {
+                        "type": "Container",
+                        "style": "${HEADER_STYLE}",
+                        "bleed": true,
+                        "items": [
+                            {
+                                "type": "ColumnSet",
+                                "columns": [
+                                    {
+                                        "type": "Column",
+                                        "width": "auto",
+                                        "items": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "${STATUS_EMOJI}",
+                                                "size": "ExtraLarge",
+                                                "weight": "Bolder"
+                                            }
+                                        ],
+                                        "verticalContentAlignment": "Center"
+                                    },
+                                    {
+                                        "type": "Column",
+                                        "width": "stretch",
+                                        "items": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "${PROJECT_NAME} ${COMPONENT}",
+                                                "weight": "Bolder",
+                                                "size": "Large",
+                                                "color": "${TITLE_COLOR}"
+                                            },
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "Build #${BUILD_NUMBER} - ${BUILD_STATUS}",
+                                                "spacing": "None",
+                                                "isSubtle": true
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ],
+                        "padding": "Default"
+                    },
+                    {
+                        "type": "Container",
+                        "items": [
+                            {
+                                "type": "FactSet",
+                                "facts": [
+                                    {
+                                        "title": "Branch",
+                                        "value": "${GIT_BRANCH}"
+                                    },
+                                    {
+                                        "title": "Duration",
+                                        "value": "${BUILD_DURATION}"
+                                    },
+                                    {
+                                        "title": "Timestamp",
+                                        "value": "${BUILD_TIMESTAMP}"
+                                    }
+                                ]
+                            }
+                        ],
+                        "separator": true,
+                        "spacing": "Medium"
+                    },
+                    {
+                        "type": "Container",
+                        "items": [
+                            {
+                                "type": "TextBlock",
+                                "text": "Security Scan",
+                                "weight": "Bolder",
+                                "size": "Medium"
+                            },
+                            {
+                                "type": "ColumnSet",
+                                "columns": [
+                                    {
+                                        "type": "Column",
+                                        "width": "auto",
+                                        "items": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "${SECURITY_HIGH}",
+                                                "size": "ExtraLarge",
+                                                "weight": "Bolder",
+                                                "color": "Attention",
+                                                "horizontalAlignment": "Center"
+                                            },
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "HIGH",
+                                                "size": "Small",
+                                                "horizontalAlignment": "Center",
+                                                "isSubtle": true
+                                            }
+                                        ],
+                                        "horizontalAlignment": "Center"
+                                    },
+                                    {
+                                        "type": "Column",
+                                        "width": "auto",
+                                        "items": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "${SECURITY_MEDIUM}",
+                                                "size": "ExtraLarge",
+                                                "weight": "Bolder",
+                                                "color": "Warning",
+                                                "horizontalAlignment": "Center"
+                                            },
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "MEDIUM",
+                                                "size": "Small",
+                                                "horizontalAlignment": "Center",
+                                                "isSubtle": true
+                                            }
+                                        ],
+                                        "horizontalAlignment": "Center"
+                                    },
+                                    {
+                                        "type": "Column",
+                                        "width": "auto",
+                                        "items": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "${SECURITY_LOW}",
+                                                "size": "ExtraLarge",
+                                                "weight": "Bolder",
+                                                "color": "Good",
+                                                "horizontalAlignment": "Center"
+                                            },
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "LOW",
+                                                "size": "Small",
+                                                "horizontalAlignment": "Center",
+                                                "isSubtle": true
+                                            }
+                                        ],
+                                        "horizontalAlignment": "Center"
+                                    },
+                                    {
+                                        "type": "Column",
+                                        "width": "stretch",
+                                        "items": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "Risk: ${RISK_LEVEL}",
+                                                "weight": "Bolder"
+                                            },
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "Score: ${RISK_SCORE}",
+                                                "isSubtle": true,
+                                                "spacing": "None"
+                                            }
+                                        ],
+                                        "verticalContentAlignment": "Center"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "TextBlock",
+                                "text": "${SECURITY_STATUS_TEXT}",
+                                "color": "${SECURITY_STATUS_COLOR}",
+                                "weight": "Bolder",
+                                "spacing": "Small"
+                            }
+                        ],
+                        "separator": true,
+                        "spacing": "Medium"
+                    },
+                    {
+                        "type": "Container",
+                        "items": [
+                            {
+                                "type": "FactSet",
+                                "facts": [
+                                    {
+                                        "title": "Deployed To",
+                                        "value": "${DEPLOY_PATH}"
+                                    }
+                                ]
+                            }
+                        ],
+                        "separator": true,
+                        "spacing": "Medium"
+                    }
+                ],
+                "actions": [
+                    {
+                        "type": "Action.OpenUrl",
+                        "title": "View Build",
+                        "url": "${BUILD_URL}",
+                        "style": "positive"
+                    },
+                    {
+                        "type": "Action.OpenUrl",
+                        "title": "SonarQube",
+                        "url": "${SONARQUBE_URL}"
+                    },
+                    {
+                        "type": "Action.OpenUrl",
+                        "title": "Console Log",
+                        "url": "${BUILD_URL}console"
+                    }
+                ],
+                "msteams": {
+                    "width": "Full"
+                }
+            }
+        }
+    ]
+}
