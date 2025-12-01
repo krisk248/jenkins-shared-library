@@ -35,7 +35,7 @@ def call(Map config = [:]) {
 
     // If no buildCommand but baseHref provided, construct Angular CLI command
     if (!buildCommand && baseHref) {
-        buildCommand = "ng build --configuration=production --aot --output-hashing=all --base-href=\"${baseHref}\""
+        buildCommand = "ng build --configuration=production --aot --output-hashing=all --source-map=false --base-href=\"${baseHref}\""
     } else if (!buildCommand) {
         buildCommand = 'npm run build'
     }
